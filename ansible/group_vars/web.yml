@@ -1,0 +1,4 @@
+db_host: "{{ hostvars['db1'].ansible_host }}"
+ufw_rules:
+  - { port: "22", src: "{{ admin_ip_cidr }}" }
+  - { port: "80", src: "any" }

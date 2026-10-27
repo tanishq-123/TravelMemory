@@ -1,0 +1,66 @@
+
+- name: Update apt cache and upgrade packages
+  ansible.builtin.apt:
+    update_cache: true
+    upgrade: safe
+    cache_valid_time: 3600
+
+# t2.micro has only 1 GiB RAM: swap prevents OOM kills during npm install / React build
+- name: Create 1 GiB swap file
+  ansible.builtin.command: dd if=/dev/zero of=/swapfile bs=1M count=1024
+  args:
+    creates: /swapfile
+  register: swap_created
+
+- name: Set swap file permissions
+  ansible.builtin.file:
+    path: /swapfile
+    mode: "0600"
+
+- name: Format swap file
+  ansible.builtin.command: mkswap /swapfile
+  when: swap_created.changed
+
+- name: Enable swap
+  ansible.builtin.command: swapon /swapfile
+  when: swap_created.changed
+
+- name: Persist swap in fstab
+  ansible.posix.mount:
+    path: none
+    src: /swapfile
+    fstype: swap
+    opts: sw
+    state: present
+
+- name: Harden sshd
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "^#?{{ item.key }}\\s"
+    line: "{{ item.key }} {{ item.value }}"
+    validate: "sshd -t -f %s"
+  loop:
+    - { key: PermitRootLogin,        value: "no" }
+    - { key: PasswordAuthentication, value: "no" }
+    - { key: PubkeyAuthentication,   value: "yes" }
+    - { key: MaxAuthTries,           value: "3" }
+  notify: Restart ssh
+
+- name: Install ufw
+  ansible.builtin.apt:
+    name: ufw
+    state: present
+
+- name: Allow required ports
+  community.general.ufw:
+    rule: allow
+    proto: tcp
+    port: "{{ item.port }}"
+    from_ip: "{{ item.src }}"
+  loop: "{{ ufw_rules }}"
+
+- name: Enable ufw with default deny inbound
+  community.general.ufw:
+    state: enabled
+    policy: deny
+    direction: incoming

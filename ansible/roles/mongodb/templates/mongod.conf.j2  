@@ -1,0 +1,16 @@
+storage:
+  dbPath: /var/lib/mongodb
+  wiredTiger:
+    engineConfig:
+      cacheSizeGB: 0.25        # keeps MongoDB inside t2.micro's 1 GiB RAM
+systemLog:
+  destination: file
+  logAppend: true
+  path: /var/log/mongodb/mongod.log
+net:
+  port: 27017
+  bindIp: 127.0.0.1,{{ ansible_default_ipv4.address }}   # private IP only, never 0.0.0.0
+processManagement:
+  timeZoneInfo: /usr/share/zoneinfo
+security:
+  authorization: {{ mongo_auth }}

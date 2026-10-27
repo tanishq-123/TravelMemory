@@ -132,3 +132,13 @@ dist
 
 # Uploaded images
 backend/uploads/
+
+*.tfstate
+*.tfstate.*
+.terraform/
+terraform.tfvars
+tfplan
+ansible/.vault_pass
+ansible/inventory/hosts.ini
+*.pem
+id_*

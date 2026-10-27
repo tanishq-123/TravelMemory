@@ -1,0 +1,94 @@
+---
+- name: Ensure apt keyrings directory exists
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: "0755"
+
+- name: Add MongoDB 7.0 signing key
+  ansible.builtin.get_url:
+    url: https://pgp.mongodb.com/server-7.0.asc
+    dest: /etc/apt/keyrings/mongodb-server-7.0.asc
+    mode: "0644"
+
+- name: Add MongoDB 7.0 repository
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/etc/apt/keyrings/mongodb-server-7.0.asc] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse"
+    filename: mongodb-org-7.0
+
+- name: Install MongoDB
+  ansible.builtin.apt:
+    name: mongodb-org
+    state: present
+    update_cache: true
+
+- name: Check whether authentication is already configured
+  ansible.builtin.shell: >
+    mongosh --quiet admin -u "{{ mongo_admin_user }}" -p "{{ mongo_admin_password }}"
+    --eval "db.runCommand({ping:1}).ok"
+  register: auth_check
+  failed_when: false
+  changed_when: false
+  no_log: true
+
+# First run only: start without auth, create users, then lock it down
+- name: Bootstrap users
+  when: auth_check.rc != 0
+  block:
+    - name: Temporary config without auth
+      ansible.builtin.template:
+        src: mongod.conf.j2
+        dest: /etc/mongod.conf
+        mode: "0644"
+      vars:
+        mongo_auth: disabled
+
+    - name: Start mongod
+      ansible.builtin.service:
+        name: mongod
+        state: restarted
+        enabled: true
+
+    - name: Wait for MongoDB
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 27017
+        delay: 3
+        timeout: 60
+
+    - name: Create admin user
+      ansible.builtin.shell: |
+        mongosh --quiet --eval '
+          const a = db.getSiblingDB("admin");
+          if (!a.getUser("{{ mongo_admin_user }}")) {
+            a.createUser({user: "{{ mongo_admin_user }}", pwd: "{{ mongo_admin_password }}",
+                          roles: [{role: "root", db: "admin"}]});
+          }'
+      no_log: true
+
+    - name: Create application database user
+      ansible.builtin.shell: |
+        mongosh --quiet --eval '
+          const d = db.getSiblingDB("{{ mongo_app_db }}");
+          if (!d.getUser("{{ mongo_app_user }}")) {
+            d.createUser({user: "{{ mongo_app_user }}", pwd: "{{ mongo_app_password }}",
+                          roles: [{role: "readWrite", db: "{{ mongo_app_db }}"}]});
+          }
+          d.init.insertOne({created: new Date()});'
+      no_log: true
+
+- name: Final config with authentication enabled
+  ansible.builtin.template:
+    src: mongod.conf.j2
+    dest: /etc/mongod.conf
+    mode: "0644"
+  notify: Restart mongod
+
+- name: Apply pending restarts
+  ansible.builtin.meta: flush_handlers
+
+- name: Ensure mongod is running and enabled
+  ansible.builtin.service:
+    name: mongod
+    state: started
+    enabled: true

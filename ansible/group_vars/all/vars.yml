@@ -1,0 +1,12 @@
+admin_ip_cidr: "106.215.176.46/32"     # same value as Terraform my_ip_cidr
+web_subnet_cidr: "10.0.1.0/24"
+
+app_repo: "https://github.com/UnpredictablePrashant/TravelMemory.git"
+app_dir: /opt/travelmemory
+backend_port: 3001
+
+mongo_admin_user: admin
+mongo_app_user: travel_app
+mongo_app_db: travelmemory
+mongo_admin_password: "{{ vault_mongo_admin_password }}"
+mongo_app_password: "{{ vault_mongo_app_password }}"

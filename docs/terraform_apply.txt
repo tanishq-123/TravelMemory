@@ -1,0 +1,63 @@
+tanishqbansal@192 terraform % terraform apply tfplan
+aws_key_pair.deployer: Creating...
+aws_eip.nat: Creating...
+aws_iam_role.ec2: Creating...
+aws_vpc.main: Creating...
+aws_key_pair.deployer: Creation complete after 2s [id=mern-travelmemory-key]
+aws_iam_role.ec2: Creation complete after 2s [id=mern-travelmemory-ec2-role]
+aws_iam_role_policy_attachment.cloudwatch: Creating...
+aws_iam_role_policy_attachment.ssm: Creating...
+aws_iam_instance_profile.ec2: Creating...
+aws_eip.nat: Creation complete after 3s [id=eipalloc-0d9a723edee3a0f45]
+aws_iam_role_policy_attachment.ssm: Creation complete after 1s [id=mern-travelmemory-ec2-role-20261027155228597700000001]
+aws_iam_role_policy_attachment.cloudwatch: Creation complete after 1s [id=mern-travelmemory-ec2-role-20261027155228993100000002]
+aws_vpc.main: Still creating... [00m10s elapsed]
+aws_iam_instance_profile.ec2: Creation complete after 9s [id=mern-travelmemory-ec2-profile]
+aws_vpc.main: Creation complete after 16s [id=vpc-0e145d2c5dcd96b3c]
+aws_internet_gateway.igw: Creating...
+aws_subnet.private: Creating...
+aws_subnet.public: Creating...
+aws_security_group.web: Creating...
+aws_subnet.private: Creation complete after 2s [id=subnet-08de33fa60ca7e91f]
+aws_internet_gateway.igw: Creation complete after 2s [id=igw-04ec9e50111940c83]
+aws_route_table.public: Creating...
+aws_route_table.public: Creation complete after 4s [id=rtb-055ded3c5eae13998]
+aws_security_group.web: Creation complete after 7s [id=sg-05f95e73c15722aad]
+aws_security_group.db: Creating...
+aws_subnet.public: Still creating... [00m10s elapsed]
+aws_security_group.db: Creation complete after 5s [id=sg-050583a95983292e1]
+aws_instance.db: Creating...
+aws_subnet.public: Creation complete after 14s [id=subnet-0742ab5e9ab046e77]
+aws_route_table_association.public: Creating...
+aws_nat_gateway.nat: Creating...
+aws_instance.web: Creating...
+aws_route_table_association.public: Creation complete after 1s [id=rtbassoc-0c69ec556f7594f6c]
+aws_instance.db: Still creating... [00m10s elapsed]
+aws_nat_gateway.nat: Still creating... [00m10s elapsed]
+aws_instance.web: Still creating... [00m10s elapsed]
+aws_instance.db: Creation complete after 17s [id=i-0e6b6f6ae512cab79]
+aws_instance.web: Creation complete after 17s [id=i-0059a77f4868d5639]
+aws_nat_gateway.nat: Still creating... [00m20s elapsed]
+aws_nat_gateway.nat: Still creating... [00m30s elapsed]
+aws_nat_gateway.nat: Still creating... [00m40s elapsed]
+aws_nat_gateway.nat: Still creating... [00m50s elapsed]
+aws_nat_gateway.nat: Still creating... [01m00s elapsed]
+aws_nat_gateway.nat: Still creating... [01m10s elapsed]
+aws_nat_gateway.nat: Still creating... [01m20s elapsed]
+aws_nat_gateway.nat: Still creating... [01m30s elapsed]
+aws_nat_gateway.nat: Still creating... [01m40s elapsed]
+aws_nat_gateway.nat: Still creating... [01m50s elapsed]
+aws_nat_gateway.nat: Still creating... [02m00s elapsed]
+aws_nat_gateway.nat: Creation complete after 2m0s [id=nat-0a65a47249212c97a]
+aws_route_table.private: Creating...
+aws_route_table.private: Creation complete after 3s [id=rtb-08222b07917f713c0]
+aws_route_table_association.private: Creating...
+aws_route_table_association.private: Creation complete after 1s [id=rtbassoc-0819f2b54cd7b3398]
+
+Apply complete! Resources: 19 added, 0 changed, 0 destroyed.
+
+Outputs:
+
+db_private_ip = "10.0.2.121"
+ssh_web = "ssh -i ~/.ssh/tf-mern-key ubuntu@13.239.139.244"
+web_public_ip = "13.239.139.244"

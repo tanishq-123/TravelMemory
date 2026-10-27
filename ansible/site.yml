@@ -1,0 +1,15 @@
+---
+- name: Baseline and hardening
+  hosts: all
+  become: true
+  roles: [common]
+
+- name: Database server
+  hosts: db
+  become: true
+  roles: [mongodb]
+
+- name: Web server
+  hosts: web
+  become: true
+  roles: [webserver]

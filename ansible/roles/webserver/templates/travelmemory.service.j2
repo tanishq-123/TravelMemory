@@ -1,0 +1,16 @@
+[Unit]
+Description=TravelMemory Express backend
+After=network.target
+
+[Service]
+User=ubuntu
+WorkingDirectory={{ app_dir }}/backend
+EnvironmentFile={{ app_dir }}/backend/.env
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/node index.js
+Restart=always
+RestartSec=5
+MemoryMax=300M
+
+[Install]
+WantedBy=multi-user.target

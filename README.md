@@ -63,7 +63,7 @@ Terraform builds the AWS infrastructure (VPC, subnets, gateways, EC2, security g
 - **OS:** Ubuntu 22.04 LTS
 - **Stack:** React (served by Nginx) → Express/Node.js (systemd) → MongoDB 7.0
 
----
+
 
 ## 1. Architecture
 
@@ -91,7 +91,7 @@ Terraform builds the AWS infrastructure (VPC, subnets, gateways, EC2, security g
 ### How the components interact
 
 | From | To | Port | Purpose |
-|---|---|---|---|
+|||||
 | Browser | Web EC2 (Nginx) | 80 | Loads the React app and calls `/api/*` |
 | Nginx | Express (localhost) | 3001 | Reverse proxy, `/api/` prefix stripped |
 | Express | DB EC2 (MongoDB) | 27017 | Reads and writes trip data, authenticated |
@@ -101,7 +101,7 @@ Terraform builds the AWS infrastructure (VPC, subnets, gateways, EC2, security g
 
 The React app is built with `REACT_APP_BACKEND_URL=http://<web-public-ip>/api`. Because Nginx serves both the frontend and the API on port 80, there are no CORS issues and only port 80 is exposed.
 
----
+
 
 ## 2. Repository structure
 
@@ -131,14 +131,14 @@ The React app is built with `REACT_APP_BACKEND_URL=http://<web-public-ip>/api`. 
 └── README.md
 ```
 
----
+
 
 ## 3. Prerequisites
 
 On your workstation (Linux/macOS/WSL):
 
 | Tool | Check |
-|---|---|
+|||
 | AWS CLI v2 | `aws --version` |
 | Terraform >= 1.5 | `terraform version` |
 | Ansible (full package) | `ansible --version` |
@@ -151,7 +151,7 @@ ansible-galaxy collection install community.general ansible.posix
 
 An AWS account with an IAM user that can create VPC, EC2, and IAM resources.
 
----
+
 
 ## 4. Part 1: Infrastructure with Terraform
 
@@ -527,7 +527,7 @@ ssh -i ~/.ssh/tf-mern-key \
 
 A connection attempt from any other IP to the web server times out, which confirms the security group works.
 
----
+
 
 ## 5. Part 2: Configuration with Ansible
 
@@ -640,7 +640,7 @@ ufw_rules:
 The database is configured before the web server so the app has something to connect to.
 
 ```yaml
----
+
 - name: Baseline and hardening
   hosts: all
   become: true
@@ -662,7 +662,7 @@ The database is configured before the web server so the app has something to con
 `roles/common/handlers/main.yml`
 
 ```yaml
----
+
 - name: Restart ssh
   ansible.builtin.service:
     name: ssh
@@ -672,7 +672,7 @@ The database is configured before the web server so the app has something to con
 `roles/common/tasks/main.yml`
 
 ```yaml
----
+
 - name: Update apt cache and upgrade packages
   ansible.builtin.apt:
     update_cache: true
@@ -751,7 +751,7 @@ mongo_auth: enabled
 `roles/mongodb/handlers/main.yml`
 
 ```yaml
----
+
 - name: Restart mongod
   ansible.builtin.service:
     name: mongod
@@ -782,7 +782,7 @@ security:
 `roles/mongodb/tasks/main.yml`
 
 ```yaml
----
+
 - name: Ensure apt keyrings directory exists
   ansible.builtin.file:
     path: /etc/apt/keyrings
@@ -883,7 +883,7 @@ security:
 `roles/webserver/handlers/main.yml`
 
 ```yaml
----
+
 - name: Restart backend
   ansible.builtin.systemd:
     name: travelmemory
@@ -956,7 +956,7 @@ server {
 `roles/webserver/tasks/main.yml`
 
 ```yaml
----
+
 - name: Install base packages
   ansible.builtin.apt:
     name: [git, nginx, curl, ca-certificates, gnupg]
@@ -1087,9 +1087,9 @@ ansible-playbook site.yml
 ansible-playbook site.yml     # second run: expect changed=0 (idempotency check)
 ```
 
-On a `t2.micro` the first run takes roughly 10 to 15 minutes. Most of that is `npm install` and the React build, which are slow on 1 vCPU with swap.
+On a `t3.micro` the first run takes roughly 10 to 15 minutes. Most of that is `npm install` and the React build, which are slow on 1 vCPU with swap.
 
----
+
 
 ## 6. Verification
 
@@ -1131,12 +1131,12 @@ Negative tests to capture as evidence:
 
 Open `http://<web_public_ip>` in a browser, add a trip and confirm it appears in the list.
 
----
+
 
 ## 7. Security summary
 
 | Layer | Control |
-|---|---|
+|||
 | Network | DB in a private subnet with no public IP; outbound only through NAT |
 | Security groups | Web: 22 from my IP, 80 from anywhere. DB: 22 and 27017 from the web SG only |
 | Host firewall | `ufw` default deny inbound, with the same rules repeated at host level |
@@ -1146,7 +1146,7 @@ Open `http://<web_public_ip>` in a browser, add a trip and confirm it appears in
 | IAM | Role with SSM and CloudWatch policies only; IMDSv2 enforced |
 | Transport | HTTP only in this assignment. Production would add TLS via a domain and ACM/Let's Encrypt |
 
----
+
 
 ## 8. t2.micro notes
 
@@ -1156,7 +1156,7 @@ Open `http://<web_public_ip>` in a browser, add a trip and confirm it appears in
 - The web server's public IP changes if the instance is stopped and started. Re-run `gen_inventory.sh` and the playbook (the frontend must be rebuilt because the IP is baked into the build). An Elastic IP avoids this.
 - The NAT Gateway and its Elastic IP are billed hourly and are not covered by EC2 free-tier hours.
 
----
+
 
 ## 9. Screenshots
 
@@ -1172,7 +1172,7 @@ Stored in `docs/screenshots/`:
 8. `app-browser.png`: working application with data
 9. `negative-tests.png`: blocked SSH and blocked DB access
 
----
+
 
 ## 10. Cleanup
 
@@ -1183,12 +1183,12 @@ terraform destroy
 
 Confirm in the AWS console that the NAT Gateway, Elastic IP, and both instances are gone.
 
----
+
 
 ## 11. Troubleshooting
 
 | Symptom | Cause and fix |
-|---|---|
+|||
 | `terraform apply` fails on `aws_key_pair` | Wrong `public_key_path`, or the key name already exists in the region |
 | SSH to web times out | `my_ip_cidr` is stale (your IP changed). Update tfvars and re-apply |
 | `ansible ping` fails for db1 only | Jump host command wrong, or the web SG rule for port 22 is missing |
@@ -1198,7 +1198,7 @@ Confirm in the AWS console that the NAT Gateway, Elastic IP, and both instances 
 | Frontend calls `localhost` | `.env` was written after the build. Delete `frontend/build` and re-run |
 | 502 from Nginx on `/api/` | Backend not running: `journalctl -u travelmemory -n 50` |
 
----
+
 
 ## 12. Submission
 

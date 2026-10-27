@@ -1,0 +1,121 @@
+
+- name: Install base packages
+  ansible.builtin.apt:
+    name: [git, nginx, curl, ca-certificates, gnupg]
+    state: present
+    update_cache: true
+
+- name: Download NodeSource setup script (Node.js 20)
+  ansible.builtin.get_url:
+    url: https://deb.nodesource.com/setup_20.x
+    dest: /tmp/nodesource_setup.sh
+    mode: "0755"
+
+- name: Add NodeSource repository
+  ansible.builtin.command: bash /tmp/nodesource_setup.sh
+  args:
+    creates: /etc/apt/sources.list.d/nodesource.list
+
+- name: Install Node.js and npm
+  ansible.builtin.apt:
+    name: nodejs
+    state: present
+    update_cache: true
+
+- name: Create app directory
+  ansible.builtin.file:
+    path: "{{ app_dir }}"
+    state: directory
+    owner: ubuntu
+    group: ubuntu
+    mode: "0755"
+
+- name: Clone TravelMemory
+  ansible.builtin.git:
+    repo: "{{ app_repo }}"
+    dest: "{{ app_dir }}"
+    update: false
+  become_user: ubuntu
+
+- name: Write backend .env
+  ansible.builtin.template:
+    src: backend.env.j2
+    dest: "{{ app_dir }}/backend/.env"
+    owner: ubuntu
+    group: ubuntu
+    mode: "0600"
+  no_log: true
+  notify: Restart backend
+
+- name: Install backend dependencies
+  community.general.npm:
+    path: "{{ app_dir }}/backend"
+    state: present
+  become_user: ubuntu
+
+- name: Write frontend .env
+  ansible.builtin.template:
+    src: frontend.env.j2
+    dest: "{{ app_dir }}/frontend/.env"
+    owner: ubuntu
+    group: ubuntu
+    mode: "0644"
+  register: frontend_env
+
+- name: Install frontend dependencies
+  community.general.npm:
+    path: "{{ app_dir }}/frontend"
+    state: present
+  become_user: ubuntu
+
+- name: Check for existing production build
+  ansible.builtin.stat:
+    path: "{{ app_dir }}/frontend/build/index.html"
+  register: build_stat
+
+- name: Build React frontend
+  ansible.builtin.command: npm run build
+  args:
+    chdir: "{{ app_dir }}/frontend"
+  environment:
+    CI: "false"
+    NODE_OPTIONS: "--max-old-space-size=768"   # fits t2.micro with swap
+  become_user: ubuntu
+  when: frontend_env.changed or not build_stat.stat.exists
+
+- name: Install systemd unit
+  ansible.builtin.template:
+    src: travelmemory.service.j2
+    dest: /etc/systemd/system/travelmemory.service
+    mode: "0644"
+  register: unit
+
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true
+  when: unit.changed
+
+- name: Enable and start backend
+  ansible.builtin.systemd:
+    name: travelmemory
+    state: started
+    enabled: true
+
+- name: Remove default nginx site
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: Reload nginx
+
+- name: Install nginx site
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/conf.d/travelmemory.conf
+    mode: "0644"
+  notify: Reload nginx
+
+- name: Enable nginx
+  ansible.builtin.service:
+    name: nginx
+    state: started
+    enabled: true

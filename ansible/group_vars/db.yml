@@ -1,0 +1,3 @@
+ufw_rules:
+  - { port: "22",    src: "{{ web_subnet_cidr }}" }
+  - { port: "27017", src: "{{ web_subnet_cidr }}" }
